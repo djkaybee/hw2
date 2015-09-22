@@ -1,0 +1,62 @@
+ Set the Thread-Specific Data Key
+
+The function pthread_setspecific() is used to set the thread-specific binding to the specified thread-specific data key. It is prototyped by :
+
+int pthread_setspecific(pthread_key_t key, const void *value);
+
+A simple example use of this function is:
+
+#include <pthread.h>
+pthread_key_t key;
+void *value;
+int ret;
+
+/* key previously created */
+ret = pthread_setspecific(key, value);
+
+pthread_setspecific() returns zero after completing successfully. Any other returned value indicates that an error occurred. When any of the following conditions occur, pthread_setspecific() fails and returns an error value.
+
+Note: pthread_setspecific() does not free its storage. If a new binding is set, the existing binding must be freed; otherwise, a memory leak can occur.
+
+Get the Thread-Specific Data Key
+
+Use pthread_getspecific() to get the calling thread's binding for key, and store it in the location pointed to by value. This function is prototyped by:
+
+int pthread_getspecific(pthread_key_t key);
+
+A simple example use of this function is:
+
+#include <pthread.h>
+pthread_key_t key;
+void *value;
+/* key previously created */
+value = pthread_getspecific(key);
+
+Global and Private Thread-Specific Data Example
+
+Thread-Specific Data Global but Private
+
+Consider the following code:
+
+ 
+body() {
+...
+while (write(fd, buffer, size) == -1) {
+if (errno != EINTR) {
+fprintf(mywindow, "%s\n", strerror(errno));
+exit(1);
+}
+}
+...
+}
+
+This code may be executed by any number of threads, but it has references to two global variables, errno and mywindow, that really should be references to items private to each thread.
+
+References to errno should get the system error code from the routine called by this thread, not by some other thread. So, references to errno by one thread refer to a different storage location than references to errno by other threads. The mywindow variable is intended to refer to a stdio stream connected to a window that is private to the referring thread. So, as with errno, references to mywindow by one thread should refer to a different storage location (and, ultimately, a different window) than references to mywindow by other threads. The only difference here is that the threads library takes care of errno, but the programmer must somehow make this work for mywindow. The next example shows how the references to mywindow work. The preprocessor converts references to mywindow into invocations of the mywindow procedure. This routine in turn invokes pthread_getspecific(), passing it the mywindow_key global variable (it really is a global variable) and an output parameter, win, that receives the identity of this thread's window.
+
+Turning Global References Into Private References Now consider this code fragment:
+
+thread_key_t mywin_key;
+FILE *_mywindow(void) {
+FILE *win;
+pthread_getspecific(mywin_key, &win);
